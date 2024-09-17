@@ -27,12 +27,19 @@ class PostSerializer(serializers.ModelSerializer):
     like_count = serializers.ReadOnlyField()
     comment_count = serializers.ReadOnlyField()
     comments = CommentSerializer(many=True, read_only=True)
+    liked_users = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'content', 'image', 'created_at', 'updated_at', 'like_count', 'comment_count', 'comments']
+        fields = ['id', 'user', 'content', 'image', 'created_at', 'updated_at', 'like_count', 'comment_count', 'comments', 'liked_users']
+
+    def get_liked_users(self, obj):
+        return obj.likes.values_list('user_id', flat=True)  # Return only the IDs of users who liked the post
 
     def create(self, validated_data):
+        # Remove user from validated_data to avoid passing it twice
+        validated_data.pop('user', None)
+
         request = self.context.get('request')
         user_profile = request.user.userprofile
         post = Post.objects.create(user=user_profile, **validated_data)
@@ -50,8 +57,11 @@ class LikeSerializer(serializers.ModelSerializer):
         # Toggle like functionality
         existing_like = Like.objects.filter(user=user_profile, post=post)
         if existing_like.exists():
+            # If the like exists, delete it and return the post or a specific response
             existing_like.delete()
-            return None  # Returning None to indicate the like was removed
+            return validated_data  # Return validated_data or any meaningful response
         else:
+            # If the like does not exist, create it
             return Like.objects.create(user=user_profile, post=post)
+
 
