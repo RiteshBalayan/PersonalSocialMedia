@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import axiosInstance from '../axiosConfig';
 import Post from '../components/Post';
+import NewPost from '../components/NewPost';
+import Sidebar from '../components/Sidebar';
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
@@ -11,11 +12,10 @@ const Feed = () => {
   useEffect(() => {
     axiosInstance.get('posts/')
       .then(response => {
-        // Ensure response.data is an array
         if (Array.isArray(response.data)) {
           setPosts(response.data);
         } else {
-          setPosts([]);  // Set posts to an empty array if the response is not an array
+          setPosts([]);
           console.error('Unexpected response data:', response.data);
         }
       })
@@ -26,6 +26,10 @@ const Feed = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const handlePostAdded = (newPost) => {
+    setPosts([newPost, ...posts]);  // Prepend the new post to the list
+  };
+
   if (loading) {
     return <div className="container mt-5">Loading...</div>;
   }
@@ -34,16 +38,22 @@ const Feed = () => {
     return <div className="container mt-5">{error}</div>;
   }
 
+
+
   return (
-    <div className="container mt-5">
-      <h1>Feed</h1>
-      {posts.length === 0 ? (
-        <p>No posts available.</p>
-      ) : (
-        posts.map(post => (
-          <Post key={post.id} post={post} />
-        ))
-      )}
+    <div style={{ display: 'flex' }}>
+      <Sidebar/>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 0' }}>
+        <NewPost onPostAdded={handlePostAdded} />
+        <div style={{ height: '4px' }} />  {/* Spacer with minimal height */}
+        {posts.length === 0 ? (
+          <p>No posts available.</p>
+        ) : (
+          posts.map(post => (
+            <Post key={post.id} post={post} style={{ marginBottom: '4px' }} />
+          ))
+        )}
+      </div>
     </div>
   );
 };
